@@ -1,0 +1,33 @@
+output = "./backend/store/postgres/dal"
+pkgname = "dal"
+no-tests = true
+no-hooks = true
+wipe = true
+
+[psql]
+dbname = "incomster"
+host = "localhost"
+port = 5432
+user = "incomster"
+password = "incomster"
+sslmode = "disable"
+blacklist = ["_migrations"]
+
+[tags]
+json = true
+
+[[types]]
+[types.match]
+type = "user_role"
+[types.replace]
+type = "string"
+
+[[types]]
+[types.match]
+type = "types.Decimal"
+
+[types.replace]
+type = "decimal.Decimal"
+
+[types.imports]
+third_party = ['"github.com/shopspring/decimal"']

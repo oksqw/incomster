@@ -1,0 +1,461 @@
+openapi: 3.1.0
+
+info:
+  title: Incomster API
+  version: 1.0.0
+
+tags:
+  - name: Authorization
+    description: Endpoints for authorization management.
+  - name: Self
+    description: Endpoints for current user management.
+  - name: Incomes
+    description: Endpoints for managing income records.
+
+paths:
+  /register:
+    post:
+      tags: [Authorization]
+      operationId: register
+      summary: Register a new user
+      description: Create a new user in the system and return authentication details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterRequest'
+      responses:
+        '201':
+          description: User successfully registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /login:
+    post:
+      tags: [Authorization]
+      operationId: login
+      summary: Login user
+      description: Authenticate a user and return session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: User successfully logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /logout:
+    get:
+      tags: [Authorization]
+      operationId: logout
+      summary: Logout user
+      description: Logout and revoking user authentication token and ending the session
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '204':
+          description: Successfully logged out. No content is returned.
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /self/:
+    get:
+      tags: [Self]
+      operationId: getSelf
+      summary: Get current user
+      description: Retrieve current user details.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags: [Self]
+      operationId: updateSelf
+      summary: Update current user
+      description: Update current user details.
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /incomes:
+    get:
+      tags: [Incomes]
+      operationId: getIncomes
+      summary: Get list of incomes
+      description: Get list of incomes with optional filters.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Limit the number of results.
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+          description: Number of items to skip before starting the results.
+        - in: query
+          name: min_date
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Minimum date and time filter in ISO 8601 format (e.g., "2023-12-19T12:00:00Z").
+        - in: query
+          name: max_date
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Maximum date and time filter in ISO 8601 format (e.g., "2023-12-19T12:00:00Z").
+        - in: query
+          name: min_amount
+          required: false
+          schema:
+            type: number
+            format: double
+          description: Filter by minimum amount.
+        - in: query
+          name: max_amount
+          required: false
+          schema:
+            type: number
+            format: double
+          description: Filter by maximum amount.
+      responses:
+        '200':
+          description: List of incomes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incomes'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Incomes]
+      operationId: addIncome
+      summary: Add a new income
+      description: Create a new income record.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncomeCreateRequest'
+      responses:
+        '201':
+          description: Created income.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Income'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /incomes/{id}:
+    get:
+      tags: [Incomes]
+      operationId: getIncome
+      summary: Get income by ID
+      description: Get income by ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the income to retrieve.
+      responses:
+        '200':
+          description: The requested income.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Income'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags: [Incomes]
+      operationId: updateIncome
+      summary: Update income
+      description: Update existed income.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the income to retrieve.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncomeUpdateRequest'
+      responses:
+        '201':
+          description: Updated income.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Income'
+        default:
+          description: Error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserRegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        name:
+          type: string
+      required:
+        - username
+        - password
+        - name
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+
+    UserLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+      required:
+        - username
+        - password
+
+    IncomeCreateRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+        comment:
+          type: string
+      required:
+        - userId
+        - amount
+
+    IncomeUpdateRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+        comment:
+          type: string
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+        jwt:
+          type: string
+      required:
+        - id
+        - jwt
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          description: Date and time in ISO 8601 format (e.g., "2023-12-19T12:00:00Z").
+        updated_at:
+          type: string
+          format: date-time
+          description: Date and time in ISO 8601 format (e.g., "2023-12-19T12:00:00Z").
+      required:
+        - id
+        - username
+        - name
+        - created_at
+        - updated_at
+
+    Users:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        count:
+          type: integer
+      required:
+        - users
+        - count
+
+    Income:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        amount:
+          type: number
+          format: double
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          description: Date and time in ISO 8601 format (e.g., "2023-12-19T12:00:00Z").
+        updated_at:
+          type: string
+          format: date-time
+          description: Date and time in ISO 8601 format (e.g., "2023-12-19T12:00:00Z").
+      required:
+        - id
+        - userId
+        - amount
+        - created_at
+        - updated_at
+
+    Incomes:
+      type: object
+      properties:
+        incomes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Income'
+        count:
+          type: integer
+        sum:
+          type: number
+          format: double
+      required:
+        - incomes
+        - count
+        - sum
+
+    Error:
+      type: object
+      properties:
+        code:
+          description: Error status code
+          type: integer
+        message:
+          description: Error description
+          type: string
+      required:
+        - code
+        - message
