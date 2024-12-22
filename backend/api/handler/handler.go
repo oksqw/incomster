@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/ogen-go/ogen/ogenerrors"
 	"incomster/backend/api/oas"
-	"incomster/backend/api/validator"
+	"incomster/backend/api/validation"
 	"incomster/backend/service"
 	"incomster/config"
 	errs "incomster/pkg/errors"
@@ -25,10 +25,10 @@ var (
 type Handler struct {
 	Config    *config.Config
 	Service   *service.Service
-	Validator *validator.Validator
+	Validator *validation.Validator
 }
 
-func NewHandler(config *config.Config, service *service.Service, validator *validator.Validator) *Handler {
+func NewHandler(config *config.Config, service *service.Service, validator *validation.Validator) *Handler {
 	return &Handler{
 		Config:    config,
 		Service:   service,

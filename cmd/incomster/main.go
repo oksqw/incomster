@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -17,8 +18,7 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
 
 	app := application.New(&cfg)
@@ -27,8 +27,26 @@ func main() {
 		log.Fatalf("setup: %v", err)
 	}
 
-	err = app.Run(ctx)
+	go run(ctx, app)
+	shutdown(ctx, app)
+}
+
+func run(ctx context.Context, app *application.App) {
+	err := app.Run(ctx)
 	if err != nil {
 		log.Fatalf("run: %v", err)
 	}
+}
+
+func shutdown(ctx context.Context, app *application.App) {
+	<-ctx.Done()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("shutdown: %v", err)
+	}
+
+	log.Println("application shut down gracefully")
 }

@@ -4,15 +4,17 @@ import (
 	"context"
 	"incomster/backend/api/handler"
 	"incomster/backend/api/oas"
-	"incomster/backend/api/validator"
+	"incomster/backend/api/validation"
 	"incomster/backend/service"
 	"incomster/backend/store"
 	"incomster/backend/store/migrate"
 	"incomster/backend/store/postgres"
 	"incomster/config"
+	"incomster/pkg/closer"
 	"incomster/pkg/jwt"
 	"log"
 	"net/http"
+	"time"
 )
 
 type App struct {
@@ -21,10 +23,11 @@ type App struct {
 	service   *service.Service
 	handler   *api.Handler
 	tokenizer *jwt.Tokenizer
+	closer    *closer.Closer
 }
 
 func New(config *config.Config) *App {
-	return &App{config: config}
+	return &App{config: config, closer: closer.New()}
 }
 
 func (a *App) Setup(ctx context.Context) error {
@@ -50,6 +53,7 @@ func (a *App) Setup(ctx context.Context) error {
 
 func (a *App) Run(ctx context.Context) error {
 	// TODO: use ctx logger
+
 	s, e := oas.NewServer(a.handler, a.handler)
 	if e != nil {
 		return e
@@ -60,6 +64,11 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (a *App) Shutdown(ctx context.Context) error {
+	// TODO: use shutdown timeout from config
+	return a.closer.CloseSequentially(ctx, 5*time.Second)
 }
 
 func (a *App) setupTokenizer(ctx context.Context) error {
@@ -101,6 +110,11 @@ func (a *App) setupStore(ctx context.Context) error {
 	session := postgres.NewSessionStore(db)
 	a.store = postgres.NewStore(user, income, session)
 
+	a.closer.Add(func(ctx context.Context) error {
+		// TODO: use ctx logger
+		return db.Close()
+	})
+
 	log.Print("store : OK")
 	return nil
 }
@@ -123,7 +137,7 @@ func (a *App) setupHandler(ctx context.Context) error {
 	// TODO: use ctx logger
 	log.Print("handler: trying")
 
-	validator := validator.NewValidator()
+	validator := validation.NewValidator()
 	a.handler = api.NewHandler(a.config, a.service, validator)
 
 	log.Print("handler: OK")
