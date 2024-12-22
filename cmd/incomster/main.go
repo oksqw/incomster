@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -17,8 +18,7 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
 
 	app := application.New(&cfg)
@@ -27,53 +27,26 @@ func main() {
 		log.Fatalf("setup: %v", err)
 	}
 
-	err = app.Run(ctx)
+	go run(ctx, app)
+	shutdown(ctx, app)
+}
+
+func run(ctx context.Context, app *application.App) {
+	err := app.Run(ctx)
 	if err != nil {
 		log.Fatalf("run: %v", err)
 	}
+}
 
-	//connector := postgres.NewDbConnector(cfg.Store.Postgres)
-	//db, err := connector.Connect(ctx)
-	//if err != nil {
-	//	log.Fatalf("failed to connect to the database: %v", err)
-	//}
-	//
-	//migrations, err := migrate.ParseMigrations(postgres.FS)
-	//if err != nil {
-	//	log.Fatalf("parse migrations: %s", err)
-	//}
-	//
-	//migrator, err := postgres.NewMigrator(db, migrations)
-	//if err != nil {
-	//	log.Fatalf("Failed to initialize migrator: %v", err)
-	//}
+func shutdown(ctx context.Context, app *application.App) {
+	<-ctx.Done()
 
-	//fmt.Printf("config: %+v\n", cfg)
-	//
-	//ctx := context.Background()
-	//ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
-	//defer cancel()
-	//
-	//db, err := sql.Open("postgres", cfg.Store.Postgres.DSN())
-	//if err != nil {
-	//	log.Fatalf("failed to connect to the database: %v", err)
-	//}
-	//defer db.Close()
-	//
-	//migrations, err := migrate.ParseMigrations(postgres.FS)
-	//if err != nil {
-	//	log.Fatalf("parse migrations: %s", err)
-	//}
-	//
-	//migrator, err := postgres.NewMigrator(db, migrations)
-	//if err != nil {
-	//	log.Fatalf("Failed to initialize migrator: %v", err)
-	//}
-	//
-	//from, to, err := migrator.Up(ctx)
-	//if err != nil {
-	//	log.Fatalf("migrate up: %s", err)
-	//}
-	//
-	//log.Printf("from : %d | to : %d | store postgres migrate up", from, to)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("shutdown: %v", err)
+	}
+
+	log.Println("application shut down gracefully")
 }
