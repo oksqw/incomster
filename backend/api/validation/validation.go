@@ -1,4 +1,4 @@
-package validator
+package validation
 
 type Validator struct {
 	User   *UserValidator
