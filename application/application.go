@@ -14,7 +14,6 @@ import (
 	"incomster/pkg/jwt"
 	"log"
 	"net/http"
-	"time"
 )
 
 type App struct {
@@ -67,8 +66,7 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
-	// TODO: use shutdown timeout from config
-	return a.closer.CloseSequentially(ctx, 5*time.Second)
+	return a.closer.CloseSequentially(ctx, a.config.ShutdownTimeout)
 }
 
 func (a *App) setupTokenizer(ctx context.Context) error {

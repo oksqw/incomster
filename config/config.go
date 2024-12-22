@@ -5,6 +5,7 @@ import (
 	"github.com/cristalhq/aconfig"
 	"github.com/cristalhq/aconfig/aconfigyaml"
 	"strings"
+	"time"
 )
 
 type Env string
@@ -14,10 +15,11 @@ func (e Env) IsDev() bool {
 }
 
 type Config struct {
-	Env   Env         `yaml:"env" default:"dev"`
-	Store StoreConfig `yaml:"store"`
-	Api   ApiConfig   `yaml:"api"`
-	Jwt   JwtConfig   `yaml:"jwt"`
+	Env             Env           `yaml:"env" default:"dev"`
+	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" default:"10s"`
+	Store           StoreConfig   `yaml:"store"`
+	Api             ApiConfig     `yaml:"api"`
+	Jwt             JwtConfig     `yaml:"jwt"`
 }
 
 func Load[T any](name string) (T, error) {
