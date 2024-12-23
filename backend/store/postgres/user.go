@@ -25,8 +25,6 @@ func NewUserStore(db *sql.DB) *UserStore {
 }
 
 func (u *UserStore) Create(ctx context.Context, input *core.UserCreateInput) (*core.User, error) {
-	// TODO: use ctx logger
-
 	user := userdto.CreatToDal(input)
 	err := user.Insert(ctx, u.db, boil.Infer())
 	if err != nil {
@@ -37,8 +35,6 @@ func (u *UserStore) Create(ctx context.Context, input *core.UserCreateInput) (*c
 }
 
 func (u *UserStore) Get(ctx context.Context, input *core.UserGetInput) (*core.User, error) {
-	// TODO: use ctx logger
-
 	var mods []qm.QueryMod
 
 	if input.Id != nil {
@@ -64,8 +60,6 @@ func (u *UserStore) Get(ctx context.Context, input *core.UserGetInput) (*core.Us
 }
 
 func (u *UserStore) Update(ctx context.Context, input *core.UserUpdateInput) (*core.User, error) {
-	// TODO: use ctx logger
-
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, ErrorTxFailedToBegin
@@ -108,8 +102,6 @@ func (u *UserStore) Update(ctx context.Context, input *core.UserUpdateInput) (*c
 }
 
 func (u *UserStore) Delete(ctx context.Context, input *core.UserDeleteInput) (*core.User, error) {
-	// TODO: use ctx logger
-
 	var mods []qm.QueryMod
 
 	if input.Id > 0 {
