@@ -11,6 +11,7 @@ require (
 	github.com/go-faster/jx v1.1.0
 	github.com/lib/pq v1.10.9
 	github.com/ogen-go/ogen v1.8.1
+	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0
 	github.com/volatiletech/null/v8 v8.1.2
 	github.com/volatiletech/sqlboiler/v4 v4.17.1
