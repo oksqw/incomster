@@ -2,6 +2,9 @@ package application
 
 import (
 	"context"
+	"errors"
+	"net/http"
+
 	"incomster/backend/api/handler"
 	"incomster/backend/api/oas"
 	"incomster/backend/api/validation"
@@ -12,15 +15,15 @@ import (
 	"incomster/config"
 	"incomster/pkg/closer"
 	"incomster/pkg/jwt"
-	"log"
-	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 type App struct {
 	store     store.IStore
 	config    *config.Config
 	service   *service.Service
-	handler   *api.Handler
+	server    *http.Server
 	tokenizer *jwt.Tokenizer
 	closer    *closer.Closer
 }
@@ -30,8 +33,7 @@ func New(config *config.Config) *App {
 }
 
 func (a *App) Setup(ctx context.Context) error {
-	// TODO: use ctx logger
-	log.Print("trying to setup application")
+	log.Ctx(ctx).Info().Str("status", "trying").Msg("setup")
 
 	if err := a.setupTokenizer(ctx); err != nil {
 		return err
@@ -42,36 +44,51 @@ func (a *App) Setup(ctx context.Context) error {
 	if err := a.setupService(ctx); err != nil {
 		return err
 	}
-	if err := a.setupHandler(ctx); err != nil {
+	if err := a.setupServer(ctx); err != nil {
 		return err
 	}
 
-	log.Print("setup application complete")
+	log.Ctx(ctx).Info().Str("status", "OK").Msg("setup")
 	return nil
 }
 
 func (a *App) Run(ctx context.Context) error {
-	// TODO: use ctx logger
+	log.Ctx(ctx).Info().Str("address", a.config.Api.String()).Msg("running...")
 
-	s, e := oas.NewServer(a.handler, a.handler)
-	if e != nil {
+	closed := make(chan struct{})
+
+	go func() {
+		<-ctx.Done()
+
+		log.Ctx(ctx).Info().Str("status", "trying").Msg("shutdown")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), a.config.ShutdownTimeout)
+		defer cancel()
+
+		if err := a.Shutdown(shutdownCtx); err != nil {
+			log.Ctx(ctx).Warn().Str("status", "failed").Err(err).Msg("shutdown")
+		} else {
+			log.Ctx(ctx).Info().Str("status", "gracefully").Msg("shutdown")
+		}
+
+		close(closed)
+	}()
+
+	if e := a.server.ListenAndServe(); !errors.Is(e, http.ErrServerClosed) {
 		return e
 	}
 
-	if e = http.ListenAndServe(a.config.Api.String(), s); e != nil {
-		return e
-	}
-
+	<-closed
 	return nil
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
+	log.Ctx(ctx).Info().Dur("timeout", a.config.ShutdownTimeout).Msg("shutdown...")
 	return a.closer.CloseSequentially(ctx, a.config.ShutdownTimeout)
 }
 
 func (a *App) setupTokenizer(ctx context.Context) error {
-	// TODO: use ctx logger
-	log.Print("tokenizer : trying")
+	log.Ctx(ctx).Debug().Str("status", "trying").Msg("tokenizer setup")
 
 	tokenizer, err := jwt.New(a.config.Jwt.Secret, a.config.Jwt.Duration)
 	if err != nil {
@@ -79,13 +96,12 @@ func (a *App) setupTokenizer(ctx context.Context) error {
 	}
 	a.tokenizer = tokenizer
 
-	log.Print("tokenizer : ok")
+	log.Ctx(ctx).Debug().Str("status", "OK").Msg("tokenizer setup")
 	return nil
 }
 
 func (a *App) setupStore(ctx context.Context) error {
-	// TODO: use ctx logger
-	log.Print("store : trying")
+	log.Ctx(ctx).Debug().Str("status", "trying").Msg("store setup")
 
 	db, err := postgres.Connect(ctx, a.config.Store.Postgres)
 	if err != nil {
@@ -106,20 +122,23 @@ func (a *App) setupStore(ctx context.Context) error {
 	user := postgres.NewUserStore(db)
 	income := postgres.NewIncomeStore(db)
 	session := postgres.NewSessionStore(db)
+
 	a.store = postgres.NewStore(user, income, session)
 
 	a.closer.Add(func(ctx context.Context) error {
-		// TODO: use ctx logger
-		return db.Close()
+		err = db.Close()
+		if err != nil {
+			log.Ctx(ctx).Debug().Str("status", "failed").Err(err).Msg("store shutdown")
+		}
+		return err
 	})
 
-	log.Print("store : OK")
+	log.Ctx(ctx).Debug().Str("status", "OK").Msg("store setup")
 	return nil
 }
 
 func (a *App) setupService(ctx context.Context) error {
-	// TODO: use ctx logger
-	log.Print("service: trying")
+	log.Ctx(ctx).Debug().Str("status", "trying").Msg("service setup")
 
 	user := service.NewUserService(a.store.User())
 	income := service.NewIncomeService(a.store.Income())
@@ -127,17 +146,33 @@ func (a *App) setupService(ctx context.Context) error {
 	security := service.NewSecurityService(a.store.Session(), a.tokenizer)
 	a.service = service.NewService(user, income, account, security)
 
-	log.Print("service: OK")
+	log.Ctx(ctx).Debug().Str("status", "OK").Msg("service setup")
 	return nil
 }
 
-func (a *App) setupHandler(ctx context.Context) error {
-	// TODO: use ctx logger
-	log.Print("handler: trying")
+func (a *App) setupServer(ctx context.Context) error {
+	log.Ctx(ctx).Debug().Str("status", "trying").Msg("server setup")
 
-	validator := validation.NewValidator()
-	a.handler = api.NewHandler(a.config, a.service, validator)
+	v := validation.NewValidator()
+	h := api.NewHandler(a.config, a.service, v)
+	s, e := oas.NewServer(h, h)
+	if e != nil {
+		return e
+	}
 
-	log.Print("handler: OK")
+	a.server = &http.Server{
+		Addr:    a.config.Api.String(),
+		Handler: s,
+	}
+
+	a.closer.Add(func(ctx context.Context) error {
+		err := a.server.Shutdown(ctx)
+		if err != nil {
+			log.Ctx(ctx).Debug().Str("status", "failed").Err(err).Msg("server shutdown")
+		}
+		return err
+	})
+
+	log.Ctx(ctx).Debug().Str("status", "OK").Msg("server setup")
 	return nil
 }

@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
-	"incomster/application"
-	"incomster/config"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
-	"time"
+
+	"incomster/application"
+	"incomster/backend/logging"
+	"incomster/config"
+
+	"github.com/rs/zerolog/log"
 
 	_ "github.com/lib/pq"
 )
@@ -15,38 +18,23 @@ import (
 func main() {
 	cfg, err := config.Load[config.Config]("incomster")
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		_, _ = fmt.Fprintf(os.Stderr, "config: %v\n", err)
+		os.Exit(1)
 	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	ctx := logging.NewLoggerContext(context.Background(), &cfg)
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	defer cancel()
 
 	app := application.New(&cfg)
+
 	err = app.Setup(ctx)
 	if err != nil {
-		log.Fatalf("setup: %v", err)
+		log.Ctx(ctx).Fatal().Err(err).Msg("setup")
 	}
 
-	go run(ctx, app)
-	shutdown(ctx, app)
-}
-
-func run(ctx context.Context, app *application.App) {
-	err := app.Run(ctx)
+	err = app.Run(ctx)
 	if err != nil {
-		log.Fatalf("run: %v", err)
+		log.Ctx(ctx).Fatal().Err(err).Msg("run")
 	}
-}
-
-func shutdown(ctx context.Context, app *application.App) {
-	<-ctx.Done()
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := app.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("shutdown: %v", err)
-	}
-
-	log.Println("application shut down gracefully")
 }
