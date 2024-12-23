@@ -17,3 +17,6 @@ api:
 jwt:
   secret: "very-secure-secret-from-config"
   duration : "12h"
+log:
+  pretty: true
+  debug: true

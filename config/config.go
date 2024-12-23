@@ -15,11 +15,12 @@ func (e Env) IsDev() bool {
 }
 
 type Config struct {
-	Env             Env           `yaml:"env" default:"dev"`
+	Env             Env           `yaml:"env"              default:"dev"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout" default:"10s"`
 	Store           StoreConfig   `yaml:"store"`
 	Api             ApiConfig     `yaml:"api"`
 	Jwt             JwtConfig     `yaml:"jwt"`
+	Log             LogConfig     `yaml:"log"`
 }
 
 func Load[T any](name string) (T, error) {
