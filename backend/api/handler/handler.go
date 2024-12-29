@@ -8,7 +8,7 @@ import (
 	"incomster/backend/api/validation"
 	"incomster/backend/service"
 	"incomster/config"
-	errs "incomster/pkg/errors"
+	errs "incomster/pkg/apperrors"
 	"log"
 	"net/http"
 )

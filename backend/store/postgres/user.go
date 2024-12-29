@@ -11,7 +11,7 @@ import (
 	"incomster/backend/store"
 	"incomster/backend/store/postgres/dal"
 	"incomster/core"
-	errs "incomster/pkg/errors"
+	errs "incomster/pkg/apperrors"
 )
 
 var _ store.IUserStore = (*UserStore)(nil)

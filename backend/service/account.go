@@ -6,7 +6,7 @@ import (
 	"incomster/backend/store"
 	"incomster/config"
 	"incomster/core"
-	errs "incomster/pkg/errors"
+	errs "incomster/pkg/apperrors"
 	"incomster/pkg/jwt"
 	"time"
 )
