@@ -12,6 +12,7 @@ import (
 	"incomster/backend/store"
 	"incomster/backend/store/postgres/dal"
 	"incomster/core"
+	errs "incomster/pkg/errors"
 )
 
 var _ store.IIncomeStore = (*IncomeStore)(nil)
@@ -28,7 +29,7 @@ func (i *IncomeStore) Create(ctx context.Context, input *core.IncomeCreateInput)
 	income := incomedto.CreateToDal(input)
 	err := income.Insert(ctx, i.db, boil.Infer())
 	if err != nil {
-		return nil, store.ErrorIncomeFailedToCreate
+		return nil, errs.ErrorIncomeFailedToCreate
 	}
 
 	return incomedto.DalToCore(income), nil
@@ -37,16 +38,16 @@ func (i *IncomeStore) Create(ctx context.Context, input *core.IncomeCreateInput)
 func (i *IncomeStore) Update(ctx context.Context, input *core.IncomeUpdateInput) (*core.Income, error) {
 	tx, err := i.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, store.ErrorTxFailedToBegin
+		return nil, errs.ErrorTxFailedToBegin
 	}
 	defer CommitOrRollback(tx, err)
 
 	found, err := dal.FindIncome(ctx, tx, input.ID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrorIncomeNotFound
+		return nil, errs.ErrorIncomeNotFound
 	}
 	if err != nil {
-		return nil, store.ErrorIncomeFailedToGet
+		return nil, errs.ErrorIncomeFailedToGet
 	}
 
 	var whitelist []string
@@ -61,12 +62,12 @@ func (i *IncomeStore) Update(ctx context.Context, input *core.IncomeUpdateInput)
 	}
 
 	if len(whitelist) == 0 {
-		return nil, store.ErrorIncomeDataRequired
+		return nil, errs.ErrorIncomeDataRequired
 	}
 
 	_, err = found.Update(ctx, tx, boil.Whitelist(whitelist...))
 	if err != nil {
-		return nil, store.ErrorIncomeFailedToUpdate
+		return nil, errs.ErrorIncomeFailedToUpdate
 	}
 
 	return incomedto.DalToCore(found), nil
@@ -75,21 +76,21 @@ func (i *IncomeStore) Update(ctx context.Context, input *core.IncomeUpdateInput)
 func (i *IncomeStore) Delete(ctx context.Context, id int) (*core.Income, error) {
 	tx, err := i.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, store.ErrorTxFailedToBegin
+		return nil, errs.ErrorTxFailedToBegin
 	}
 	defer CommitOrRollback(tx, err)
 
 	found, err := dal.FindIncome(ctx, tx, id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrorIncomeNotFound
+		return nil, errs.ErrorIncomeNotFound
 	}
 	if err != nil {
-		return nil, store.ErrorIncomeFailedToGet
+		return nil, errs.ErrorIncomeFailedToGet
 	}
 
 	_, err = found.Delete(ctx, tx)
 	if err != nil {
-		return nil, store.ErrorIncomeFailedToDelete
+		return nil, errs.ErrorIncomeFailedToDelete
 	}
 
 	return incomedto.DalToCore(found), nil
@@ -98,10 +99,10 @@ func (i *IncomeStore) Delete(ctx context.Context, id int) (*core.Income, error) 
 func (i *IncomeStore) Get(ctx context.Context, id int) (*core.Income, error) {
 	income, err := dal.FindIncome(ctx, i.db, id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrorIncomeNotFound
+		return nil, errs.ErrorIncomeNotFound
 	}
 	if err != nil {
-		return nil, store.ErrorIncomeFailedToGet
+		return nil, errs.ErrorIncomeFailedToGet
 	}
 
 	return incomedto.DalToCore(income), nil

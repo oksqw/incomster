@@ -5,6 +5,33 @@ import (
 	"net/http"
 )
 
+var (
+	ErrorUserNotFound       = NotFound("user not found")
+	ErrorUserDataRequired   = BadRequest("user data required")
+	ErrorUserFailedToCreate = Internal("failed to create user")
+	ErrorUserFailedToGet    = Internal("failed to get user")
+	ErrorUserFailedToUpdate = Internal("failed to update user")
+	ErrorUserFailedToDelete = Internal("failed to delete user")
+
+	ErrorSessionNotFound       = NotFound("session not found")
+	ErrorSessionDataRequired   = BadRequest("session data is required")
+	ErrorSessionFailedToCreate = Internal("failed to create session")
+	ErrorSessionFailedToGet    = Internal("failed to get session")
+	ErrorSessionFailedToUpdate = Internal("failed to update session")
+	ErrorSessionFailedToDelete = Internal("failed to delete session")
+
+	ErrorIncomeNotFound       = NotFound("income not found")
+	ErrorIncomeDataRequired   = BadRequest("income data is required")
+	ErrorIncomeFailedToCreate = Internal("failed to create income")
+	ErrorIncomeFailedToGet    = Internal("failed to get income")
+	ErrorIncomeFailedToUpdate = Internal("failed to update income")
+	ErrorIncomeFailedToDelete = Internal("failed to delete income")
+
+	ErrorTxFailedToBegin = Internal("failed to begin transaction")
+
+	ErrorUniqueConstraintViolated = Conflict("unique constraint violation")
+)
+
 type AppError struct {
 	Code    int
 	Message string

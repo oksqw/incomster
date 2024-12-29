@@ -45,15 +45,15 @@ func (u *UserStore) Get(ctx context.Context, input *core.UserGetInput) (*core.Us
 	}
 
 	if len(mods) == 0 {
-		return nil, store.ErrorUserDataRequired
+		return nil, errs.ErrorUserDataRequired
 	}
 
 	found, err := dal.Users(mods...).One(ctx, u.db)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrorUserNotFound
+		return nil, errs.ErrorUserNotFound
 	}
 	if err != nil {
-		return nil, store.ErrorUserFailedToGet
+		return nil, errs.ErrorUserFailedToGet
 	}
 
 	return userdto.DalToCore(found), nil
@@ -62,16 +62,16 @@ func (u *UserStore) Get(ctx context.Context, input *core.UserGetInput) (*core.Us
 func (u *UserStore) Update(ctx context.Context, input *core.UserUpdateInput) (*core.User, error) {
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, store.ErrorTxFailedToBegin
+		return nil, errs.ErrorTxFailedToBegin
 	}
 	defer CommitOrRollback(tx, err)
 
 	found, err := dal.FindUser(ctx, tx, input.Id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrorUserNotFound
+		return nil, errs.ErrorUserNotFound
 	}
 	if err != nil {
-		return nil, store.ErrorUserFailedToGet
+		return nil, errs.ErrorUserFailedToGet
 	}
 
 	var whitelist []string
@@ -90,7 +90,7 @@ func (u *UserStore) Update(ctx context.Context, input *core.UserUpdateInput) (*c
 	}
 
 	if len(whitelist) == 0 {
-		return nil, store.ErrorUserDataRequired
+		return nil, errs.ErrorUserDataRequired
 	}
 
 	_, err = found.Update(ctx, tx, boil.Whitelist(whitelist...))
@@ -111,26 +111,26 @@ func (u *UserStore) Delete(ctx context.Context, input *core.UserDeleteInput) (*c
 		mods = append(mods, qm.Where("username = ?", input.Username))
 	}
 	if len(mods) == 0 {
-		return nil, store.ErrorUserDataRequired
+		return nil, errs.ErrorUserDataRequired
 	}
 
 	tx, err := u.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, store.ErrorTxFailedToBegin
+		return nil, errs.ErrorTxFailedToBegin
 	}
 	defer CommitOrRollback(tx, err)
 
 	found, err := dal.Users(mods...).One(ctx, u.db)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrorUserNotFound
+		return nil, errs.ErrorUserNotFound
 	}
 	if err != nil {
-		return nil, store.ErrorUserFailedToGet
+		return nil, errs.ErrorUserFailedToGet
 	}
 
 	_, err = found.Delete(ctx, tx)
 	if err != nil {
-		return nil, store.ErrorUserFailedToDelete
+		return nil, errs.ErrorUserFailedToDelete
 	}
 
 	return userdto.DalToCore(found), nil
@@ -149,7 +149,7 @@ func (u *UserStore) isUniqueViolation(err error) (bool, string) {
 func (u *UserStore) handleUserCreateError(err error) error {
 	unique, constraint := u.isUniqueViolation(err)
 	if !unique {
-		return store.ErrorUserFailedToCreate
+		return errs.ErrorUserFailedToCreate
 	}
 
 	return u.handleUniqueConstraintsError(constraint)
@@ -157,12 +157,12 @@ func (u *UserStore) handleUserCreateError(err error) error {
 
 func (u *UserStore) handleUserUpdateError(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
-		return store.ErrorUserNotFound
+		return errs.ErrorUserNotFound
 	}
 
 	unique, constraint := u.isUniqueViolation(err)
 	if !unique {
-		return store.ErrorUserFailedToUpdate
+		return errs.ErrorUserFailedToUpdate
 	}
 
 	return u.handleUniqueConstraintsError(constraint)
@@ -174,5 +174,5 @@ func (u *UserStore) handleUniqueConstraintsError(constraint string) error {
 		return errs.Conflict(message)
 	}
 
-	return store.ErrorUniqueConstraintViolated
+	return errs.ErrorUniqueConstraintViolated
 }
