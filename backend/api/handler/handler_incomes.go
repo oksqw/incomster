@@ -3,14 +3,36 @@ package api
 import (
 	"context"
 	"incomster/backend/api/oas"
+	"incomster/backend/api/validation"
 	"incomster/backend/dto/incomedto"
 	"incomster/backend/dto/incomesdto"
+	"incomster/backend/service"
 	"incomster/pkg/ctxutil"
 	errs "incomster/pkg/errors"
 )
 
-func (h *Handler) AddIncome(ctx context.Context, req *oas.IncomeCreateRequest) (*oas.Income, error) {
-	if err := h.Validator.Income.Create(req); err != nil {
+// TODO: Есть большая проблема.
+// Методы взаимодействия с икомами не проверяют ID пользователя.
+// Соответственно любой пользователь может взаимодействовать со всеми инкомами.
+//----------------------------------------------------------------------------------------------------------------------
+// Возможные варианты решения :
+// Получать id пользователя из контекста и переделать некоторые структуры и методы стора
+// чтобы в них учитывался не только по id инкома но и id пользователя.
+// Таким образом при попытке получения чужого инкома пользователь будет получать ошибку 404.
+
+var _ oas.IncomeHandler = (*IncomeHandler)(nil)
+
+type IncomeHandler struct {
+	service   *service.IncomeService
+	validator *validation.IncomeValidator
+}
+
+func NewIncomeHandler(service *service.IncomeService, validator *validation.IncomeValidator) *IncomeHandler {
+	return &IncomeHandler{service: service, validator: validator}
+}
+
+func (h *IncomeHandler) AddIncome(ctx context.Context, req *oas.IncomeCreateRequest) (*oas.Income, error) {
+	if err := h.validator.Create(req); err != nil {
 		return nil, err
 	}
 
@@ -19,7 +41,7 @@ func (h *Handler) AddIncome(ctx context.Context, req *oas.IncomeCreateRequest) (
 		return nil, errs.BadRequest("failed to get user id")
 	}
 
-	income, err := h.Service.Income.Create(ctx, incomedto.CreateToInput(req, userId))
+	income, err := h.service.Create(ctx, incomedto.CreateToInput(req, userId))
 	if err != nil {
 		return nil, err
 	}
@@ -27,12 +49,12 @@ func (h *Handler) AddIncome(ctx context.Context, req *oas.IncomeCreateRequest) (
 	return incomedto.CoreToOas(income), nil
 }
 
-func (h *Handler) UpdateIncome(ctx context.Context, req *oas.IncomeUpdateRequest, params oas.UpdateIncomeParams) (*oas.Income, error) {
-	if err := h.Validator.Income.Update(req); err != nil {
+func (h *IncomeHandler) UpdateIncome(ctx context.Context, req *oas.IncomeUpdateRequest, params oas.UpdateIncomeParams) (*oas.Income, error) {
+	if err := h.validator.Update(req); err != nil {
 		return nil, err
 	}
 
-	income, err := h.Service.Income.Update(ctx, incomedto.UpdateToInput(req, params.ID))
+	income, err := h.service.Update(ctx, incomedto.UpdateToInput(req, params.ID))
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +62,8 @@ func (h *Handler) UpdateIncome(ctx context.Context, req *oas.IncomeUpdateRequest
 	return incomedto.CoreToOas(income), nil
 }
 
-func (h *Handler) GetIncome(ctx context.Context, params oas.GetIncomeParams) (*oas.Income, error) {
-	income, err := h.Service.Income.Get(ctx, params.ID)
+func (h *IncomeHandler) GetIncome(ctx context.Context, params oas.GetIncomeParams) (*oas.Income, error) {
+	income, err := h.service.Get(ctx, params.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +71,8 @@ func (h *Handler) GetIncome(ctx context.Context, params oas.GetIncomeParams) (*o
 	return incomedto.CoreToOas(income), nil
 }
 
-func (h *Handler) GetIncomes(ctx context.Context, params oas.GetIncomesParams) (*oas.Incomes, error) {
-	incomes, err := h.Service.Income.Find(ctx, incomesdto.ParamsToFilter(&params))
+func (h *IncomeHandler) GetIncomes(ctx context.Context, params oas.GetIncomesParams) (*oas.Incomes, error) {
+	incomes, err := h.service.Find(ctx, incomesdto.ParamsToFilter(&params))
 	if err != nil {
 		return nil, err
 	}

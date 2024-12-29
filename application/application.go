@@ -142,7 +142,7 @@ func (a *App) setupService(ctx context.Context) error {
 
 	user := service.NewUserService(a.store.User())
 	income := service.NewIncomeService(a.store.Income())
-	account := service.NewAuthorizationService(a.store.Session(), a.store.User(), a.tokenizer, a.config)
+	account := service.NewAccountService(a.store.Session(), a.store.User(), a.tokenizer, a.config)
 	security := service.NewSecurityService(a.store.Session(), a.tokenizer)
 	a.service = service.NewService(user, income, account, security)
 

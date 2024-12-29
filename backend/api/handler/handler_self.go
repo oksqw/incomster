@@ -3,13 +3,26 @@ package api
 import (
 	"context"
 	"incomster/backend/api/oas"
+	"incomster/backend/api/validation"
 	"incomster/backend/dto/userdto"
+	"incomster/backend/service"
 	"incomster/core"
 	"incomster/pkg/ctxutil"
 )
 
-func (h *Handler) UpdateSelf(ctx context.Context, req *oas.UserUpdateRequest) (*oas.User, error) {
-	err := h.Validator.User.Update(req)
+var _ oas.SelfHandler = (*SelfHandler)(nil)
+
+type SelfHandler struct {
+	service   *service.UserService
+	validator *validation.UserValidator
+}
+
+func NewSelfHandler(service *service.UserService, validator *validation.UserValidator) *SelfHandler {
+	return &SelfHandler{service: service, validator: validator}
+}
+
+func (h *SelfHandler) UpdateSelf(ctx context.Context, req *oas.UserUpdateRequest) (*oas.User, error) {
+	err := h.validator.Update(req)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +32,7 @@ func (h *Handler) UpdateSelf(ctx context.Context, req *oas.UserUpdateRequest) (*
 		return nil, FailedToFetchUserId
 	}
 
-	user, err := h.Service.User.Update(ctx, userdto.UpdateToInput(req, userId))
+	user, err := h.service.Update(ctx, userdto.UpdateToInput(req, userId))
 	if err != nil {
 		return nil, err
 	}
@@ -27,13 +40,13 @@ func (h *Handler) UpdateSelf(ctx context.Context, req *oas.UserUpdateRequest) (*
 	return userdto.CoreToOas(user), nil
 }
 
-func (h *Handler) GetSelf(ctx context.Context) (*oas.User, error) {
+func (h *SelfHandler) GetSelf(ctx context.Context) (*oas.User, error) {
 	userId, err := ctxutil.GetUserId(ctx)
 	if err != nil {
 		return nil, FailedToFetchUserId
 	}
 
-	user, err := h.Service.User.Get(ctx, &core.UserGetInput{Id: &userId})
+	user, err := h.service.Get(ctx, &core.UserGetInput{Id: &userId})
 	if err != nil {
 		return nil, err
 	}

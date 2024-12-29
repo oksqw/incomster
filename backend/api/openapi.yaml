@@ -15,6 +15,7 @@ tags:
 paths:
   /register:
     post:
+      x-ogen-operation-group: Account
       tags: [Authorization]
       operationId: register
       summary: Register a new user
@@ -41,6 +42,7 @@ paths:
 
   /login:
     post:
+      x-ogen-operation-group: Account
       tags: [Authorization]
       operationId: login
       summary: Login user
@@ -67,6 +69,7 @@ paths:
 
   /logout:
     get:
+      x-ogen-operation-group: Account
       tags: [Authorization]
       operationId: logout
       summary: Logout user
@@ -85,6 +88,7 @@ paths:
 
   /self/:
     get:
+      x-ogen-operation-group: Self
       tags: [Self]
       operationId: getSelf
       summary: Get current user
@@ -106,6 +110,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
     patch:
+      x-ogen-operation-group: Self
       tags: [Self]
       operationId: updateSelf
       summary: Update current user
@@ -134,6 +139,7 @@ paths:
 
   /incomes:
     get:
+      x-ogen-operation-group: Income
       tags: [Incomes]
       operationId: getIncomes
       summary: Get list of incomes
@@ -200,6 +206,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
     post:
+      x-ogen-operation-group: Income
       tags: [Incomes]
       operationId: addIncome
       summary: Add a new income
@@ -228,6 +235,7 @@ paths:
 
   /incomes/{id}:
     get:
+      x-ogen-operation-group: Income
       tags: [Incomes]
       operationId: getIncome
       summary: Get income by ID
@@ -256,6 +264,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
     patch:
+      x-ogen-operation-group: Income
       tags: [Incomes]
       operationId: updateIncome
       summary: Update income
