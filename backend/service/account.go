@@ -11,18 +11,18 @@ import (
 	"time"
 )
 
-type AuthorizationService struct {
+type AccountService struct {
 	user      store.IUserStore
 	session   store.ISessionStore
 	tokenizer *jwt.Tokenizer
 	config    *config.Config
 }
 
-func NewAuthorizationService(session store.ISessionStore, user store.IUserStore, tokenizer *jwt.Tokenizer, config *config.Config) *AuthorizationService {
-	return &AuthorizationService{session: session, user: user, tokenizer: tokenizer, config: config}
+func NewAccountService(session store.ISessionStore, user store.IUserStore, tokenizer *jwt.Tokenizer, config *config.Config) *AccountService {
+	return &AccountService{session: session, user: user, tokenizer: tokenizer, config: config}
 }
 
-func (s *AuthorizationService) Register(ctx context.Context, input *core.UserCreateInput) (*core.Session, error) {
+func (s *AccountService) Register(ctx context.Context, input *core.UserCreateInput) (*core.Session, error) {
 	user, err := s.user.Create(ctx, input)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (s *AuthorizationService) Register(ctx context.Context, input *core.UserCre
 	return session, nil
 }
 
-func (s *AuthorizationService) Login(ctx context.Context, input *core.UserLoginInput) (*core.Session, error) {
+func (s *AccountService) Login(ctx context.Context, input *core.UserLoginInput) (*core.Session, error) {
 	user, err := s.user.Get(ctx, &core.UserGetInput{Username: &input.Username})
 	var notFound *errs.NotFoundError
 	if errors.As(err, &notFound) {
@@ -62,7 +62,7 @@ func (s *AuthorizationService) Login(ctx context.Context, input *core.UserLoginI
 	return s.handleSecondLogin(ctx, session)
 }
 
-func (s *AuthorizationService) Logout(ctx context.Context, userId int) error {
+func (s *AccountService) Logout(ctx context.Context, userId int) error {
 	_, err := s.session.Delete(ctx, &core.SessionGetInput{UserID: userId})
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (s *AuthorizationService) Logout(ctx context.Context, userId int) error {
 	return nil
 }
 
-func (s *AuthorizationService) handleFirstLogin(ctx context.Context, input *core.User) (*core.Session, error) {
+func (s *AccountService) handleFirstLogin(ctx context.Context, input *core.User) (*core.Session, error) {
 	// Генерируем новый токен
 	token, err := s.tokenizer.Generate(input.ID, input.Role)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *AuthorizationService) handleFirstLogin(ctx context.Context, input *core
 	return session, nil
 }
 
-func (s *AuthorizationService) handleSecondLogin(ctx context.Context, input *core.Session) (*core.Session, error) {
+func (s *AccountService) handleSecondLogin(ctx context.Context, input *core.Session) (*core.Session, error) {
 	// Парсим данные токена
 	claims, err := s.tokenizer.Parse(input.Token)
 	if err != nil {

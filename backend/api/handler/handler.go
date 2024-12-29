@@ -13,16 +13,18 @@ import (
 	"net/http"
 )
 
-var (
-	_ oas.Handler         = (*Handler)(nil)
-	_ oas.SecurityHandler = (*Handler)(nil)
-)
+var _ oas.Handler = (*Handler)(nil)
 
 var (
 	FailedToFetchUserId = errs.BadRequest("failed to fetch user id")
 )
 
 type Handler struct {
+	AccountHandler
+	SelfHandler
+	IncomeHandler
+	SecurityHandler
+
 	Config    *config.Config
 	Service   *service.Service
 	Validator *validation.Validator
@@ -30,6 +32,11 @@ type Handler struct {
 
 func NewHandler(config *config.Config, service *service.Service, validator *validation.Validator) *Handler {
 	return &Handler{
+		AccountHandler:  *NewAccountHandler(service.Account, validator.Account),
+		SelfHandler:     *NewSelfHandler(service.User, validator.User),
+		IncomeHandler:   *NewIncomeHandler(service.Income, validator.Income),
+		SecurityHandler: *NewSecurityHandler(service.Security),
+
 		Config:    config,
 		Service:   service,
 		Validator: validator,

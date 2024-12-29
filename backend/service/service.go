@@ -14,10 +14,10 @@ var (
 type Service struct {
 	User     *UserService
 	Income   *IncomeService
-	Account  *AuthorizationService
+	Account  *AccountService
 	Security *SecurityService
 }
 
-func NewService(user *UserService, income *IncomeService, account *AuthorizationService, security *SecurityService) *Service {
+func NewService(user *UserService, income *IncomeService, account *AccountService, security *SecurityService) *Service {
 	return &Service{User: user, Income: income, Account: account, Security: security}
 }
