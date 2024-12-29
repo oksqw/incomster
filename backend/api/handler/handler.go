@@ -8,16 +8,12 @@ import (
 	"incomster/backend/api/validation"
 	"incomster/backend/service"
 	"incomster/config"
-	errs "incomster/pkg/apperrors"
+	"incomster/pkg/apperrors"
 	"log"
 	"net/http"
 )
 
 var _ oas.Handler = (*Handler)(nil)
-
-var (
-	FailedToFetchUserId = errs.BadRequest("failed to fetch user id")
-)
 
 type Handler struct {
 	AccountHandler
@@ -44,7 +40,7 @@ func NewHandler(config *config.Config, service *service.Service, validator *vali
 }
 
 func (h *Handler) NewError(ctx context.Context, err error) *oas.ErrorStatusCode {
-	var appErr *errs.AppError
+	var appErr *apperrors.Error
 	if errors.As(err, &appErr) {
 		return h.handleAppError(appErr)
 	}
@@ -73,7 +69,7 @@ func (h *Handler) NewError(ctx context.Context, err error) *oas.ErrorStatusCode 
 	}
 }
 
-func (h *Handler) handleAppError(err *errs.AppError) *oas.ErrorStatusCode {
+func (h *Handler) handleAppError(err *apperrors.Error) *oas.ErrorStatusCode {
 	if err.Details != nil {
 		log.Print(err.Details)
 	}

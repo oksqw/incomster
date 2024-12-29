@@ -27,29 +27,26 @@ var (
 	ErrorIncomeFailedToUpdate = Internal("failed to update income")
 	ErrorIncomeFailedToDelete = Internal("failed to delete income")
 
-	ErrorTxFailedToBegin = Internal("failed to begin transaction")
-
+	ErrorTxFailedToBegin          = Internal("failed to begin transaction")
 	ErrorUniqueConstraintViolated = Conflict("unique constraint violation")
+
+	ErrorFailedToFetchUserId = BadRequest("failed to fetch user id")
 )
 
-type AppError struct {
+type Error struct {
 	Code    int
 	Message string
 	Details any
 }
 
-type NotFoundError struct {
-	*AppError
-}
-
-func (e *AppError) Error() string {
+func (e *Error) Error() string {
 	if e.Details == nil {
 		return fmt.Sprintf("%d: %s", e.Code, e.Message)
 	}
 	return fmt.Sprintf("%d: %s (%#v)", e.Code, e.Message, e.Details)
 }
 
-func New(code int, msg string, items ...any) *AppError {
+func New(code int, msg string, items ...any) *Error {
 	var ctx any
 
 	switch {
@@ -59,7 +56,7 @@ func New(code int, msg string, items ...any) *AppError {
 		ctx = items
 	}
 
-	return &AppError{
+	return &Error{
 		Code:    code,
 		Message: msg,
 		Details: ctx,
@@ -71,9 +68,7 @@ func Internal(msg string, items ...any) error {
 }
 
 func NotFound(msg string, items ...any) error {
-	return &NotFoundError{
-		AppError: New(http.StatusNotFound, msg, items...),
-	}
+	return New(http.StatusNotFound, msg, items...)
 }
 
 func Conflict(msg string, items ...any) error {
