@@ -24,8 +24,7 @@ var (
 	ErrorIncomeFailedToUpdate = errs.Internal("failed to update income")
 	ErrorIncomeFailedToDelete = errs.Internal("failed to delete income")
 
-	ErrorTxFailedToBegin  = errs.Internal("failed to begin transaction")
-	ErrorTxFailedToCommit = errs.Internal("failed to commit transaction")
+	ErrorTxFailedToBegin = errs.Internal("failed to begin transaction")
 
 	ErrorUniqueConstraintViolated = errs.Conflict("unique constraint violation")
 )
