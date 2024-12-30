@@ -13,6 +13,7 @@ import (
 	"incomster/backend/store/postgres/dal"
 	"incomster/core"
 	"incomster/pkg/apperrors"
+	"incomster/pkg/collectionutils"
 )
 
 var _ store.IIncomeStore = (*IncomeStore)(nil)
@@ -73,14 +74,19 @@ func (i *IncomeStore) Update(ctx context.Context, input *core.IncomeUpdateInput)
 	return incomedto.DalToCore(found), nil
 }
 
-func (i *IncomeStore) Delete(ctx context.Context, id int) (*core.Income, error) {
+func (i *IncomeStore) Delete(ctx context.Context, input *core.IncomeDeleteInput) (*core.Income, error) {
 	tx, err := i.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, apperrors.ErrorTxFailedToBegin
 	}
 	defer CommitOrRollback(tx, err)
 
-	found, err := dal.FindIncome(ctx, tx, id)
+	mods := []qm.QueryMod{
+		qm.Where(fmt.Sprintf("%s = ?", dal.IncomeColumns.ID), input.ID),
+		qm.Where(fmt.Sprintf("%s = ?", dal.IncomeColumns.UserID), input.UserID),
+	}
+
+	found, err := dal.Incomes(mods...).One(ctx, i.db)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, apperrors.ErrorIncomeNotFound
 	}
@@ -96,8 +102,13 @@ func (i *IncomeStore) Delete(ctx context.Context, id int) (*core.Income, error) 
 	return incomedto.DalToCore(found), nil
 }
 
-func (i *IncomeStore) Get(ctx context.Context, id int) (*core.Income, error) {
-	income, err := dal.FindIncome(ctx, i.db, id)
+func (i *IncomeStore) Get(ctx context.Context, input *core.IncomeGetInput) (*core.Income, error) {
+	mods := []qm.QueryMod{
+		qm.Where(fmt.Sprintf("%s = ?", dal.IncomeColumns.ID), input.ID),
+		qm.Where(fmt.Sprintf("%s = ?", dal.IncomeColumns.UserID), input.UserID),
+	}
+
+	income, err := dal.Incomes(mods...).One(ctx, i.db)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, apperrors.ErrorIncomeNotFound
 	}
@@ -108,28 +119,35 @@ func (i *IncomeStore) Get(ctx context.Context, id int) (*core.Income, error) {
 	return incomedto.DalToCore(income), nil
 }
 
-func (i *IncomeStore) Find(ctx context.Context, filter *core.IncomesFilter) (*core.Incomes, error) {
+func (i *IncomeStore) Find(ctx context.Context, input *core.GetIncomesInput) (*core.Incomes, error) {
 	mods := []qm.QueryMod{
-		qm.Limit(filter.Limit),
-		qm.Offset(filter.Offset),
+		qm.Limit(input.Limit),
+		qm.Offset(input.Offset),
 	}
 
-	if filter.MinDate != nil {
-		mods = append(mods, qm.Where("created_at >= ?", filter.MinDate))
+	if len(input.Users) > 0 {
+		mods = append(mods, qm.WhereIn(fmt.Sprintf("%s IN ?", dal.IncomeColumns.UserID), collectionutils.ToInterface(input.Users)...))
 	}
-	if filter.MaxDate != nil {
-		mods = append(mods, qm.Where("created_at <= ?", filter.MaxDate))
+	if input.MinDate != nil {
+		mods = append(mods, qm.Where(fmt.Sprintf("%s >= ?", dal.IncomeColumns.CreatedAt), input.MinDate))
 	}
-	if filter.MinAmount != nil {
-		mods = append(mods, qm.Where("amount >= ?", filter.MinAmount))
+	if input.MaxDate != nil {
+		mods = append(mods, qm.Where(fmt.Sprintf("%s <= ?", dal.IncomeColumns.CreatedAt), input.MaxDate))
 	}
-	if filter.MaxAmount != nil {
-		mods = append(mods, qm.Where("amount <= ?", filter.MaxAmount))
+	if input.MinAmount != nil {
+		mods = append(mods, qm.Where(fmt.Sprintf("%s >= ?", dal.IncomeColumns.Amount), input.MinAmount))
+	}
+	if input.MaxAmount != nil {
+		mods = append(mods, qm.Where(fmt.Sprintf("%s <= ?", dal.IncomeColumns.Amount), input.MaxAmount))
 	}
 
 	found, err := dal.Incomes(mods...).All(ctx, i.db)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return &core.Incomes{}, nil
+	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch incomes: %w", err)
+		return nil, apperrors.Internal("failed to fetch incomes", err)
 	}
 
 	items := make([]*core.Income, len(found))

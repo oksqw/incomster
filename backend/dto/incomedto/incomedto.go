@@ -7,9 +7,8 @@ import (
 	"incomster/core"
 )
 
-func CreateToInput(in *oas.IncomeCreateRequest, userId int) *core.IncomeCreateInput {
+func CreateToInput(in *oas.IncomeCreateRequest) *core.IncomeCreateInput {
 	out := &core.IncomeCreateInput{
-		UserID: userId,
 		Amount: in.Amount,
 	}
 
@@ -20,10 +19,8 @@ func CreateToInput(in *oas.IncomeCreateRequest, userId int) *core.IncomeCreateIn
 	return out
 }
 
-func UpdateToInput(in *oas.IncomeUpdateRequest, incomeId int) *core.IncomeUpdateInput {
-	out := &core.IncomeUpdateInput{
-		ID: incomeId,
-	}
+func UpdateToInput(in *oas.IncomeUpdateRequest) *core.IncomeUpdateInput {
+	out := &core.IncomeUpdateInput{}
 
 	if in.Amount.IsSet() {
 		out.Amount = &in.Amount.Value
@@ -34,6 +31,12 @@ func UpdateToInput(in *oas.IncomeUpdateRequest, incomeId int) *core.IncomeUpdate
 	}
 
 	return out
+}
+
+func GetParamsToInput(in oas.GetIncomeParams) *core.IncomeGetInput {
+	return &core.IncomeGetInput{
+		ID: in.ID,
+	}
 }
 
 func UpdateToDal(in *oas.IncomeUpdateRequest, incomeId int) *dal.Income {

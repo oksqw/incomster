@@ -7,7 +7,7 @@ import (
 	"incomster/backend/dto/incomedto"
 	"incomster/backend/dto/incomesdto"
 	"incomster/backend/service"
-	errs "incomster/pkg/apperrors"
+	"incomster/pkg/apperrors"
 	"incomster/pkg/ctxutil"
 )
 
@@ -19,6 +19,9 @@ import (
 // Получать id пользователя из контекста и переделать некоторые структуры и методы стора
 // чтобы в них учитывался не только по id инкома но и id пользователя.
 // Таким образом при попытке получения чужого инкома пользователь будет получать ошибку 404.
+//----------------------------------------------------------------------------------------------------------------------
+// UPD:
+// Проблема исправлена путем описанным выше.
 
 var _ oas.IncomeHandler = (*IncomeHandler)(nil)
 
@@ -38,10 +41,10 @@ func (h *IncomeHandler) AddIncome(ctx context.Context, req *oas.IncomeCreateRequ
 
 	userId, err := ctxutil.GetUserId(ctx)
 	if err != nil {
-		return nil, errs.BadRequest("failed to get user id")
+		return nil, apperrors.ErrorFailedToFetchUserId
 	}
 
-	income, err := h.service.Create(ctx, incomedto.CreateToInput(req, userId))
+	income, err := h.service.Create(ctx, incomedto.CreateToInput(req).WithUserId(userId))
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +57,12 @@ func (h *IncomeHandler) UpdateIncome(ctx context.Context, req *oas.IncomeUpdateR
 		return nil, err
 	}
 
-	income, err := h.service.Update(ctx, incomedto.UpdateToInput(req, params.ID))
+	userId, err := ctxutil.GetUserId(ctx)
+	if err != nil {
+		return nil, apperrors.ErrorFailedToFetchUserId
+	}
+
+	income, err := h.service.Update(ctx, incomedto.UpdateToInput(req).WithId(params.ID).WithUserId(userId))
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +71,12 @@ func (h *IncomeHandler) UpdateIncome(ctx context.Context, req *oas.IncomeUpdateR
 }
 
 func (h *IncomeHandler) GetIncome(ctx context.Context, params oas.GetIncomeParams) (*oas.Income, error) {
-	income, err := h.service.Get(ctx, params.ID)
+	userId, err := ctxutil.GetUserId(ctx)
+	if err != nil {
+		return nil, apperrors.ErrorFailedToFetchUserId
+	}
+
+	income, err := h.service.Get(ctx, incomedto.GetParamsToInput(params).WithUserId(userId))
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +85,12 @@ func (h *IncomeHandler) GetIncome(ctx context.Context, params oas.GetIncomeParam
 }
 
 func (h *IncomeHandler) GetIncomes(ctx context.Context, params oas.GetIncomesParams) (*oas.Incomes, error) {
-	incomes, err := h.service.Find(ctx, incomesdto.ParamsToFilter(&params))
+	userId, err := ctxutil.GetUserId(ctx)
+	if err != nil {
+		return nil, apperrors.ErrorFailedToFetchUserId
+	}
+
+	incomes, err := h.service.Find(ctx, incomesdto.GetParamsToInput(&params).WithUserId(userId))
 	if err != nil {
 		return nil, err
 	}

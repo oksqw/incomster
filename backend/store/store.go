@@ -27,10 +27,10 @@ type IUserStore interface {
 
 type IIncomeStore interface {
 	Create(ctx context.Context, income *core.IncomeCreateInput) (*core.Income, error)
-	Get(ctx context.Context, id int) (*core.Income, error)
-	Find(ctx context.Context, filter *core.IncomesFilter) (*core.Incomes, error)
-	Update(ctx context.Context, income *core.IncomeUpdateInput) (*core.Income, error)
-	Delete(ctx context.Context, id int) (*core.Income, error)
+	Get(ctx context.Context, input *core.IncomeGetInput) (*core.Income, error)
+	Update(ctx context.Context, input *core.IncomeUpdateInput) (*core.Income, error)
+	Delete(ctx context.Context, input *core.IncomeDeleteInput) (*core.Income, error)
+	Find(ctx context.Context, input *core.GetIncomesInput) (*core.Incomes, error)
 }
 
 type ISessionStore interface {

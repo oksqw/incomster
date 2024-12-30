@@ -15,8 +15,8 @@ func CoreToOas(in *core.Incomes) *oas.Incomes {
 	}
 }
 
-func ParamsToFilter(in *oas.GetIncomesParams) *core.IncomesFilter {
-	out := &core.IncomesFilter{
+func GetParamsToInput(in *oas.GetIncomesParams) *core.GetIncomesInput {
+	out := &core.GetIncomesInput{
 		Limit:  in.Limit,
 		Offset: in.Offset,
 	}
