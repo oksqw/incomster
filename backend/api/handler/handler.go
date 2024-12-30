@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"github.com/ogen-go/ogen/ogenerrors"
+	"github.com/rs/zerolog/log"
 	"incomster/backend/api/oas"
 	"incomster/backend/api/validation"
 	"incomster/backend/service"
 	"incomster/config"
 	"incomster/pkg/apperrors"
-	"log"
+	"incomster/pkg/ctxutil"
+	"incomster/pkg/ternary"
 	"net/http"
 )
 
@@ -40,45 +42,54 @@ func NewHandler(config *config.Config, service *service.Service, validator *vali
 }
 
 func (h *Handler) NewError(ctx context.Context, err error) *oas.ErrorStatusCode {
-	var appErr *apperrors.Error
+	var (
+		userId, _ = ctxutil.GetUserId(ctx)
+		appErr    *apperrors.Error
+	)
+
 	if errors.As(err, &appErr) {
-		return h.handleAppError(appErr)
+		return h.handleAppError(userId, appErr)
 	}
 
 	if errors.Is(err, ogenerrors.ErrSecurityRequirementIsNotSatisfied) {
-		return &oas.ErrorStatusCode{
-			StatusCode: http.StatusUnauthorized,
-			Response: oas.Error{
-				Code:    http.StatusUnauthorized,
-				Message: "security requirement is not satisfied",
-			},
-		}
+		return h.handleSecurityError(userId, err)
 	}
 
-	msg := "internal server error"
-	if h.Config.Env.IsDev() {
-		msg = err.Error()
-	}
-
-	return &oas.ErrorStatusCode{
-		StatusCode: http.StatusInternalServerError,
-		Response: oas.Error{
-			Code:    http.StatusInternalServerError,
-			Message: msg,
-		},
-	}
+	return h.handleInternalError(userId, err)
 }
 
-func (h *Handler) handleAppError(err *apperrors.Error) *oas.ErrorStatusCode {
-	if err.Details != nil {
-		log.Print(err.Details)
-	}
+func (h *Handler) handleAppError(userId int, err *apperrors.Error) *oas.ErrorStatusCode {
+	log.Warn().Str("error_kind", "app error").Int("user_id", userId).Err(err).Send()
 
 	return &oas.ErrorStatusCode{
 		StatusCode: err.Code,
 		Response: oas.Error{
 			Code:    err.Code,
 			Message: err.Message,
+		},
+	}
+}
+
+func (h *Handler) handleSecurityError(userId int, err error) *oas.ErrorStatusCode {
+	log.Warn().Str("error_kind", "security error").Int("user_id", userId).Err(err).Send()
+
+	return &oas.ErrorStatusCode{
+		StatusCode: http.StatusUnauthorized,
+		Response: oas.Error{
+			Code:    http.StatusUnauthorized,
+			Message: "security requirement is not satisfied",
+		},
+	}
+}
+
+func (h *Handler) handleInternalError(userId int, err error) *oas.ErrorStatusCode {
+	log.Warn().Str("error_kind", "internal error").Int("user_id", userId).Err(err).Send()
+
+	return &oas.ErrorStatusCode{
+		StatusCode: http.StatusInternalServerError,
+		Response: oas.Error{
+			Code:    http.StatusInternalServerError,
+			Message: ternary.Func(h.Config.Env.IsDev(), err.Error(), "internal server error"),
 		},
 	}
 }
