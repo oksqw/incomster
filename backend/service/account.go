@@ -6,7 +6,7 @@ import (
 	"incomster/backend/store"
 	"incomster/config"
 	"incomster/core"
-	errs "incomster/pkg/errors"
+	errs "incomster/pkg/apperrors"
 	"incomster/pkg/jwt"
 	"time"
 )
@@ -46,8 +46,7 @@ func (s *AccountService) Register(ctx context.Context, input *core.UserCreateInp
 
 func (s *AccountService) Login(ctx context.Context, input *core.UserLoginInput) (*core.Session, error) {
 	user, err := s.user.Get(ctx, &core.UserGetInput{Username: &input.Username})
-	var notFound *errs.NotFoundError
-	if errors.As(err, &notFound) {
+	if errors.Is(err, errs.ErrorUserNotFound) {
 		return nil, invalidCredential
 	}
 	if err != nil {

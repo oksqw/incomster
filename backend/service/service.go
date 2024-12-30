@@ -1,6 +1,6 @@
 package service
 
-import errs "incomster/pkg/errors"
+import errs "incomster/pkg/apperrors"
 
 var (
 	invalidCredential     = errs.Unauthorized("invalid username or password")

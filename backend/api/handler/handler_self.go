@@ -7,6 +7,7 @@ import (
 	"incomster/backend/dto/userdto"
 	"incomster/backend/service"
 	"incomster/core"
+	"incomster/pkg/apperrors"
 	"incomster/pkg/ctxutil"
 )
 
@@ -29,7 +30,7 @@ func (h *SelfHandler) UpdateSelf(ctx context.Context, req *oas.UserUpdateRequest
 
 	userId, err := ctxutil.GetUserId(ctx)
 	if err != nil {
-		return nil, FailedToFetchUserId
+		return nil, apperrors.ErrorFailedToFetchUserId
 	}
 
 	user, err := h.service.Update(ctx, userdto.UpdateToInput(req, userId))
@@ -43,7 +44,7 @@ func (h *SelfHandler) UpdateSelf(ctx context.Context, req *oas.UserUpdateRequest
 func (h *SelfHandler) GetSelf(ctx context.Context) (*oas.User, error) {
 	userId, err := ctxutil.GetUserId(ctx)
 	if err != nil {
-		return nil, FailedToFetchUserId
+		return nil, apperrors.ErrorFailedToFetchUserId
 	}
 
 	user, err := h.service.Get(ctx, &core.UserGetInput{Id: &userId})

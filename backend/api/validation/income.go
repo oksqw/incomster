@@ -2,7 +2,7 @@ package validation
 
 import (
 	"incomster/backend/api/oas"
-	errs "incomster/pkg/errors"
+	errs "incomster/pkg/apperrors"
 )
 
 type IncomeValidator struct {

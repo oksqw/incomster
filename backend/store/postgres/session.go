@@ -9,6 +9,7 @@ import (
 	"incomster/backend/store"
 	"incomster/backend/store/postgres/dal"
 	"incomster/core"
+	errs "incomster/pkg/apperrors"
 )
 
 var _ store.ISessionStore = (*SessionStore)(nil)
@@ -26,7 +27,7 @@ func (s SessionStore) Create(ctx context.Context, input *core.SessionCreateInput
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, ErrorTxFailedToBegin
+		return nil, errs.ErrorTxFailedToBegin
 	}
 	defer CommitOrRollback(tx, err)
 
@@ -37,7 +38,7 @@ func (s SessionStore) Create(ctx context.Context, input *core.SessionCreateInput
 
 	err = session.Insert(ctx, tx, boil.Infer())
 	if err != nil {
-		return nil, ErrorSessionFailedToCreate
+		return nil, errs.ErrorSessionFailedToCreate
 	}
 
 	mods := []qm.QueryMod{
@@ -47,7 +48,7 @@ func (s SessionStore) Create(ctx context.Context, input *core.SessionCreateInput
 
 	found, err := dal.Sessions(mods...).One(ctx, tx)
 	if err != nil {
-		return nil, ErrorSessionFailedToGet
+		return nil, errs.ErrorSessionFailedToGet
 	}
 
 	return s.toCore(found), nil
@@ -64,10 +65,10 @@ func (s SessionStore) Update(ctx context.Context, input *core.SessionUpdateInput
 
 	_, err := session.Update(ctx, s.db, boil.Infer())
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrorSessionNotFound
+		return nil, errs.ErrorSessionNotFound
 	}
 	if err != nil {
-		return nil, ErrorSessionFailedToUpdate
+		return nil, errs.ErrorSessionFailedToUpdate
 	}
 
 	return s.toCore(session), nil
@@ -88,15 +89,15 @@ func (s SessionStore) Get(ctx context.Context, input *core.SessionGetInput) (*co
 		mods = append(mods, qm.Where("token = ?", input.Token))
 	}
 	if len(mods) == 0 {
-		return nil, ErrorSessionDataRequired
+		return nil, errs.ErrorSessionDataRequired
 	}
 
 	found, err := dal.Sessions(mods...).One(ctx, s.db)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrorSessionNotFound
+		return nil, errs.ErrorSessionNotFound
 	}
 	if err != nil {
-		return nil, ErrorSessionFailedToGet
+		return nil, errs.ErrorSessionFailedToGet
 	}
 
 	return s.toCore(found), nil
@@ -117,26 +118,26 @@ func (s SessionStore) Delete(ctx context.Context, input *core.SessionGetInput) (
 		mods = append(mods, qm.Where("token = ?", input.Token))
 	}
 	if len(mods) == 0 {
-		return nil, ErrorSessionDataRequired
+		return nil, errs.ErrorSessionDataRequired
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, ErrorTxFailedToBegin
+		return nil, errs.ErrorTxFailedToBegin
 	}
 	defer CommitOrRollback(tx, err)
 
 	found, err := dal.Sessions(mods...).One(ctx, tx)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrorSessionNotFound
+		return nil, errs.ErrorSessionNotFound
 	}
 	if err != nil {
-		return nil, ErrorSessionFailedToGet
+		return nil, errs.ErrorSessionFailedToGet
 	}
 
 	_, err = found.Delete(ctx, tx)
 	if err != nil {
-		return nil, ErrorSessionFailedToDelete
+		return nil, errs.ErrorSessionFailedToDelete
 	}
 
 	return s.toCore(found), nil

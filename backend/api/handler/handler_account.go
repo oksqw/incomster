@@ -7,6 +7,7 @@ import (
 	"incomster/backend/dto/sessiondto"
 	"incomster/backend/dto/userdto"
 	"incomster/backend/service"
+	"incomster/pkg/apperrors"
 	"incomster/pkg/ctxutil"
 )
 
@@ -50,7 +51,7 @@ func (h *AccountHandler) Login(ctx context.Context, req *oas.UserLoginRequest) (
 func (h *AccountHandler) Logout(ctx context.Context) error {
 	userId, err := ctxutil.GetUserId(ctx)
 	if err != nil {
-		return FailedToFetchUserId
+		return apperrors.ErrorFailedToFetchUserId
 	}
 
 	return h.service.Logout(ctx, userId)
