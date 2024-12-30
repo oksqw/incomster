@@ -22,14 +22,14 @@ func (s *IncomeService) Update(ctx context.Context, input *core.IncomeUpdateInpu
 	return s.store.Update(ctx, input)
 }
 
-func (s *IncomeService) Delete(ctx context.Context, id int) (*core.Income, error) {
-	return s.store.Delete(ctx, id)
+func (s *IncomeService) Delete(ctx context.Context, input *core.IncomeDeleteInput) (*core.Income, error) {
+	return s.store.Delete(ctx, input)
 }
 
-func (s *IncomeService) Get(ctx context.Context, id int) (*core.Income, error) {
-	return s.store.Get(ctx, id)
+func (s *IncomeService) Get(ctx context.Context, input *core.IncomeGetInput) (*core.Income, error) {
+	return s.store.Get(ctx, input)
 }
 
-func (s *IncomeService) Find(ctx context.Context, filter *core.IncomesFilter) (*core.Incomes, error) {
-	return s.store.Find(ctx, filter)
+func (s *IncomeService) Find(ctx context.Context, input *core.GetIncomesInput) (*core.Incomes, error) {
+	return s.store.Find(ctx, input)
 }
