@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 
@@ -23,5 +24,9 @@ func NewLoggerContext(ctx context.Context, cfg *config.Config) context.Context {
 		l = zerolog.DebugLevel
 	}
 
-	return zerolog.New(w).Level(l).With().Timestamp().Logger().WithContext(ctx)
+	// TODO: Не уверен что это корректный подход.
+	// По-сути мы тут глобальному логеру присваиваем только что созданных логер.
+	// Мне это выглядить нормально, но я не уверен что это не вызовет каких-то проблем.
+	log.Logger = zerolog.New(w).Level(l).With().Timestamp().Logger()
+	return log.Logger.WithContext(ctx)
 }
